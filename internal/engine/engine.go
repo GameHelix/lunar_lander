@@ -1,4 +1,4 @@
-// Package engine calls the Wickwise engine API: a tenant's agents, their
+// Package engine calls the Candylario engine API: a tenant's agents, their
 // status, commands, and each agent's events as a stream. Its contract is
 // the engine's openapi.yaml.
 package engine

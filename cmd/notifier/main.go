@@ -1,4 +1,4 @@
-// Command notifier delivers Wickwise agents' messages to Telegram through
+// Command notifier delivers Candylario agents' messages to Telegram through
 // one bot, and passes the commands people send it to the engine.
 package main
 
@@ -17,13 +17,13 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/wickwise/notifier/internal/engine"
-	"github.com/wickwise/notifier/internal/notifier"
-	"github.com/wickwise/notifier/internal/store"
-	"github.com/wickwise/notifier/internal/telegram"
+	"github.com/candylario/notifier/internal/engine"
+	"github.com/candylario/notifier/internal/notifier"
+	"github.com/candylario/notifier/internal/store"
+	"github.com/candylario/notifier/internal/telegram"
 )
 
-const usage = `notifier — Wickwise agents' messages on Telegram, and commands back
+const usage = `notifier — Candylario agents' messages on Telegram, and commands back
 
   notifier serve                  run the bot
   notifier link --tenant ID       print a one-time link that connects a

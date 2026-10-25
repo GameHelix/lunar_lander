@@ -24,7 +24,7 @@ services:
       DATABASE_URL: postgres://notifier:${POSTGRES_PASSWORD}@postgres:5432/notifier?sslmode=disable
       ENGINE_API_URL: ${ENGINE_API_URL:-http://trader:8080}
     # The engine is reachable as trader:8080 on the shared network.
-    networks: [default, wickwise]
+    networks: [default, candylario]
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,7 +35,7 @@ services:
     stop_grace_period: 15s
 
 networks:
-  wickwise:
+  candylario:
     external: true
 
 volumes:

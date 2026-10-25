@@ -1,4 +1,4 @@
-module github.com/wickwise/notifier
+module github.com/candylario/notifier
 
 go 1.27
 

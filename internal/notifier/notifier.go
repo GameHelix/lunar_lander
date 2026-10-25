@@ -15,9 +15,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/wickwise/notifier/internal/engine"
-	"github.com/wickwise/notifier/internal/store"
-	"github.com/wickwise/notifier/internal/telegram"
+	"github.com/candylario/notifier/internal/engine"
+	"github.com/candylario/notifier/internal/store"
+	"github.com/candylario/notifier/internal/telegram"
 )
 
 type Service struct {
@@ -78,8 +78,8 @@ var menu = []telegram.Command{
 }
 
 const (
-	description      = "Wickwise agents trade crypto around the clock within the limits you set. Connect this chat from the Wickwise app to get their decisions, trades and alerts here, and to control them."
-	shortDescription = "Updates and controls for your Wickwise trading agents."
+	description      = "Candylario agents trade crypto around the clock within the limits you set. Connect this chat from the Candylario app to get their decisions, trades and alerts here, and to control them."
+	shortDescription = "Updates and controls for your Candylario trading agents."
 )
 
 func (s *Service) defaults() {
@@ -418,7 +418,7 @@ func (s *Service) handle(ctx context.Context, m telegram.Message) {
 	}
 	link, err := s.Store.Link(ctx, chat)
 	if errors.Is(err, store.ErrNotLinked) {
-		s.say(ctx, chat, "This chat is not connected. Open the link from the Wickwise app.")
+		s.say(ctx, chat, "This chat is not connected. Open the link from the Candylario app.")
 		return
 	}
 	if err != nil {
@@ -436,7 +436,7 @@ func (s *Service) handle(ctx context.Context, m telegram.Message) {
 			return
 		}
 		s.refresh()
-		s.say(ctx, chat, "Disconnected. Nothing more will arrive here. Open a new link from the Wickwise app to connect again.")
+		s.say(ctx, chat, "Disconnected. Nothing more will arrive here. Open a new link from the Candylario app to connect again.")
 		return
 	default:
 		s.say(ctx, chat, helpText)
@@ -556,7 +556,7 @@ func (s *Service) start(ctx context.Context, m telegram.Message, code string) {
 		if _, err := s.Store.Link(ctx, chat); err == nil {
 			s.say(ctx, chat, "This chat is connected.\n\n"+helpText)
 		} else {
-			s.say(ctx, chat, "Open the link from the Wickwise app to connect this chat.")
+			s.say(ctx, chat, "Open the link from the Candylario app to connect this chat.")
 		}
 		return
 	}
@@ -566,7 +566,7 @@ func (s *Service) start(ctx context.Context, m telegram.Message, code string) {
 	}
 	l, err := s.Store.Redeem(ctx, code, chat, name)
 	if errors.Is(err, store.ErrBadCode) {
-		s.say(ctx, chat, "This link has expired or was already used. Get a new one from the Wickwise app.")
+		s.say(ctx, chat, "This link has expired or was already used. Get a new one from the Candylario app.")
 		return
 	}
 	if err != nil {
