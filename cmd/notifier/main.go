@@ -1,0 +1,101 @@
+// Command notifier delivers Wickwise agents' messages to Telegram through
+// one bot, and passes the commands people send it to the engine.
+package main
+
+import (
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/google/uuid"
+
+	"github.com/wickwise/notifier/internal/engine"
+	"github.com/wickwise/notifier/internal/notifier"
+	"github.com/wickwise/notifier/internal/store"
+	"github.com/wickwise/notifier/internal/telegram"
+)
+
+const usage = `notifier — Wickwise agents' messages on Telegram, and commands back
+
+  notifier serve                  run the bot
+  notifier link --tenant ID       print a one-time link that connects a
+                                  Telegram chat to the tenant (10 minutes)
+
+Needs TELEGRAM_BOT_TOKEN, ENGINE_API_URL, ENGINE_API_TOKEN and DATABASE_URL.`
+
+func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+	if err := run(ctx, os.Args[1:], os.Stdout); err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, args []string, out io.Writer) error {
+	if len(args) == 0 || args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
+		fmt.Fprintln(out, usage)
+		return nil
+	}
+	var missing []string
+	env := map[string]string{}
+	for _, k := range []string{"TELEGRAM_BOT_TOKEN", "ENGINE_API_URL", "ENGINE_API_TOKEN", "DATABASE_URL"} {
+		if env[k] = os.Getenv(k); env[k] == "" {
+			missing = append(missing, k)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("set %s", strings.Join(missing, ", "))
+	}
+	if err := store.Migrate(ctx, env["DATABASE_URL"]); err != nil {
+		return err
+	}
+	st, err := store.Open(ctx, env["DATABASE_URL"])
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	bot := &telegram.Bot{HTTP: &http.Client{Timeout: 90 * time.Second}, BaseURL: os.Getenv("TELEGRAM_API_URL"), Token: env["TELEGRAM_BOT_TOKEN"]}
+	logf := func(format string, args ...any) {
+		fmt.Fprintf(out, "%s %s\n", time.Now().UTC().Format("2006-01-02 15:04:05Z"), fmt.Sprintf(format, args...))
+	}
+	switch args[0] {
+	case "serve":
+		if len(args) > 1 {
+			return errors.New("serve takes no arguments")
+		}
+		svc := &notifier.Service{Bot: bot, Store: st, Logf: logf,
+			Engine: &engine.Client{BaseURL: env["ENGINE_API_URL"], Token: env["ENGINE_API_TOKEN"], HTTP: &http.Client{}}}
+		return svc.Run(ctx)
+	case "link":
+		fs := flag.NewFlagSet("link", flag.ContinueOnError)
+		fs.SetOutput(io.Discard)
+		tenant := fs.String("tenant", "", "tenant ID")
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		id, err := uuid.Parse(*tenant)
+		if err != nil || fs.NArg() != 0 {
+			return errors.New("usage: notifier link --tenant ID")
+		}
+		me, err := bot.Me(ctx)
+		if err != nil {
+			return fmt.Errorf("telegram bot: %w", err)
+		}
+		code, err := st.NewCode(ctx, id, 10*time.Minute)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "https://t.me/%s?start=%s\nOpen it in Telegram within 10 minutes; it works once.\n", me.Username, code)
+		return nil
+	}
+	return fmt.Errorf("unknown command %q; run `notifier help`", args[0])
+}
