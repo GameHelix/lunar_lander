@@ -16,6 +16,6 @@ docker compose run --rm notifier link --tenant TENANT_ID      # a one-time link 
 
 The app connects chats through the notifier's API on `127.0.0.1:8081` (`notifier:8080` on the shared network) with `Authorization: Bearer $NOTIFIER_API_TOKEN`: `POST /v1/tenants/ID/links` gives a one-time link, `GET /v1/tenants/ID/chats` lists the chats connected and `DELETE /v1/tenants/ID/chats/CHAT` disconnects one. The contract is [api/openapi.yaml](api/openapi.yaml).
 
-On a server prepared by [candylario/infra](https://github.com/candylario/infra): `./deploy.sh deploy@SERVER_IP`.
+On a server prepared by [candylario/infra](https://github.com/candylario/infra): `./deploy.sh deploy@SERVER_IP`; `./move.sh deploy@SERVER_IP` moves a notifier running here, links included, and stops it here.
 
 Tests need Postgres: `TEST_DATABASE_URL=postgres://... go test ./...`
