@@ -9,10 +9,12 @@ Delivers Candylario agents' messages to Telegram through one bot, [@CandylarioBo
 ## Run
 
 ```sh
-cp .env.example .env       # TELEGRAM_BOT_TOKEN from BotFather; ENGINE_API_TOKEN as in the engine; POSTGRES_PASSWORD
+cp .env.example .env       # TELEGRAM_BOT_TOKEN from BotFather; ENGINE_API_TOKEN as in the engine; NOTIFIER_API_TOKEN (openssl rand -hex 32); POSTGRES_PASSWORD
 docker compose up -d --build                                  # needs the shared network: docker network create candylario
 docker compose run --rm notifier link --tenant TENANT_ID      # a one-time link that connects a Telegram chat
 ```
+
+The app connects chats through the notifier's API on `127.0.0.1:8081` (`notifier:8080` on the shared network) with `Authorization: Bearer $NOTIFIER_API_TOKEN`: `POST /v1/tenants/ID/links` gives a one-time link, `GET /v1/tenants/ID/chats` lists the chats connected and `DELETE /v1/tenants/ID/chats/CHAT` disconnects one. The contract is [api/openapi.yaml](api/openapi.yaml).
 
 On a server prepared by [candylario/infra](https://github.com/candylario/infra): `./deploy.sh deploy@SERVER_IP`.
 

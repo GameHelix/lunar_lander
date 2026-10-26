@@ -253,7 +253,9 @@ func (s *Service) repliedWith(chat int64, agent, text string) bool {
 	return ok && time.Now().Before(until)
 }
 
-func (s *Service) refresh() {
+// Wake matches the streams to the links now, after a chat connected or
+// disconnected.
+func (s *Service) Wake() {
 	select {
 	case s.wake <- struct{}{}:
 	default:
@@ -435,7 +437,7 @@ func (s *Service) handle(ctx context.Context, m telegram.Message) {
 			s.say(ctx, chat, "⚠️ Something went wrong; try again in a minute.")
 			return
 		}
-		s.refresh()
+		s.Wake()
 		s.say(ctx, chat, "Disconnected. Nothing more will arrive here. Open a new link from the Candylario app to connect again.")
 		return
 	default:
@@ -575,6 +577,6 @@ func (s *Service) start(ctx context.Context, m telegram.Message, code string) {
 		return
 	}
 	s.Logf("chat %d connected to tenant %s", chat, l.Tenant)
-	s.refresh()
+	s.Wake()
 	s.say(ctx, chat, "✅ Connected. Your agents' decisions, trades and alerts will arrive here.\n\n"+helpText)
 }

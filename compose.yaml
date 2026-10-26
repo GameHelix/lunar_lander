@@ -24,6 +24,8 @@ services:
       DATABASE_URL: postgres://notifier:${POSTGRES_PASSWORD}@postgres:5432/notifier?sslmode=disable
       ENGINE_API_URL: ${ENGINE_API_URL:-http://trader:8080}
     # The engine is reachable as trader:8080 on the shared network.
+    ports:
+      - "127.0.0.1:8081:8080"
     networks: [default, candylario]
     depends_on:
       postgres:

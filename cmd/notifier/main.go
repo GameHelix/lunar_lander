@@ -17,6 +17,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/candylario/notifier/internal/api"
 	"github.com/candylario/notifier/internal/engine"
 	"github.com/candylario/notifier/internal/notifier"
 	"github.com/candylario/notifier/internal/store"
@@ -25,11 +26,12 @@ import (
 
 const usage = `notifier — Candylario agents' messages on Telegram, and commands back
 
-  notifier serve                  run the bot
+  notifier serve                  run the bot and the API for the app
   notifier link --tenant ID       print a one-time link that connects a
                                   Telegram chat to the tenant (10 minutes)
 
-Needs TELEGRAM_BOT_TOKEN, ENGINE_API_URL, ENGINE_API_TOKEN and DATABASE_URL.`
+Needs TELEGRAM_BOT_TOKEN, ENGINE_API_URL, ENGINE_API_TOKEN, DATABASE_URL and
+NOTIFIER_API_TOKEN. The API listens on NOTIFIER_API_ADDR, :8080 by default.`
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -47,7 +49,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 	}
 	var missing []string
 	env := map[string]string{}
-	for _, k := range []string{"TELEGRAM_BOT_TOKEN", "ENGINE_API_URL", "ENGINE_API_TOKEN", "DATABASE_URL"} {
+	for _, k := range []string{"TELEGRAM_BOT_TOKEN", "ENGINE_API_URL", "ENGINE_API_TOKEN", "DATABASE_URL", "NOTIFIER_API_TOKEN"} {
 		if env[k] = os.Getenv(k); env[k] == "" {
 			missing = append(missing, k)
 		}
@@ -72,9 +74,34 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		if len(args) > 1 {
 			return errors.New("serve takes no arguments")
 		}
+		me, err := bot.Me(ctx)
+		if err != nil {
+			return fmt.Errorf("telegram bot: %w", err)
+		}
 		svc := &notifier.Service{Bot: bot, Store: st, Logf: logf,
 			Engine: &engine.Client{BaseURL: env["ENGINE_API_URL"], Token: env["ENGINE_API_TOKEN"], HTTP: &http.Client{}}}
-		return svc.Run(ctx)
+		a := &api.Server{Token: env["NOTIFIER_API_TOKEN"], Bot: me.Username, Store: st, Refresh: svc.Wake, Logf: logf}
+		addr := os.Getenv("NOTIFIER_API_ADDR")
+		if addr == "" {
+			addr = ":8080"
+		}
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		errc := make(chan error, 2)
+		go func() {
+			err := a.Serve(ctx, addr)
+			if err != nil {
+				err = fmt.Errorf("api: %w", err)
+			}
+			errc <- err
+		}()
+		go func() { errc <- svc.Run(ctx) }()
+		err = <-errc
+		cancel()
+		if err2 := <-errc; err == nil {
+			err = err2
+		}
+		return err
 	case "link":
 		fs := flag.NewFlagSet("link", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)

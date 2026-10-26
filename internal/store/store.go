@@ -151,9 +151,28 @@ func (s *Store) Links(ctx context.Context) ([]Link, error) {
 	})
 }
 
+// LinksOf lists the chats that follow a tenant.
+func (s *Store) LinksOf(ctx context.Context, tenant uuid.UUID) ([]Link, error) {
+	rows, err := s.pool.Query(ctx, "select chat_id, tenant_id, name, linked_at from links where tenant_id = $1 order by linked_at, chat_id", tenant)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (Link, error) {
+		var l Link
+		return l, r.Scan(&l.Chat, &l.Tenant, &l.Name, &l.LinkedAt)
+	})
+}
+
 func (s *Store) Unlink(ctx context.Context, chat int64) error {
 	_, err := s.pool.Exec(ctx, "delete from links where chat_id = $1", chat)
 	return err
+}
+
+// UnlinkOf disconnects a chat from a tenant, and reports whether it was
+// connected to that tenant.
+func (s *Store) UnlinkOf(ctx context.Context, tenant uuid.UUID, chat int64) (bool, error) {
+	tag, err := s.pool.Exec(ctx, "delete from links where tenant_id = $1 and chat_id = $2", tenant, chat)
+	return tag.RowsAffected() > 0, err
 }
 
 // Cursor is the last event of the agent the chat has been told about.
