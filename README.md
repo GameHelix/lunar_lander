@@ -9,7 +9,7 @@ Delivers Candylario agents' messages to Telegram through one bot, [@CandylarioBo
 ## Run
 
 ```sh
-cp .env.example .env       # TELEGRAM_BOT_TOKEN from BotFather; ENGINE_API_TOKEN as in the engine; NOTIFIER_API_TOKEN (openssl rand -hex 32); POSTGRES_PASSWORD
+cp .env.example .env       # TELEGRAM_BOT_TOKEN from BotFather; ENGINE_NOTIFIER_TOKEN as in the engine (its token for the notifier); NOTIFIER_API_TOKEN (openssl rand -hex 32); POSTGRES_PASSWORD
 docker compose up -d --build                                  # needs the shared network: docker network create candylario
 docker compose run --rm notifier link --tenant TENANT_ID      # a one-time link that connects a Telegram chat
 ```

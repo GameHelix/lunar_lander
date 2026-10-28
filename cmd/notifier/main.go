@@ -30,7 +30,7 @@ const usage = `notifier — Candylario agents' messages on Telegram, and command
   notifier link --tenant ID       print a one-time link that connects a
                                   Telegram chat to the tenant (10 minutes)
 
-Needs TELEGRAM_BOT_TOKEN, ENGINE_API_URL, ENGINE_API_TOKEN, DATABASE_URL and
+Needs TELEGRAM_BOT_TOKEN, ENGINE_API_URL, ENGINE_NOTIFIER_TOKEN (the engine's token for the notifier), DATABASE_URL and
 NOTIFIER_API_TOKEN. The API listens on NOTIFIER_API_ADDR, :8080 by default.`
 
 func main() {
@@ -49,7 +49,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 	}
 	var missing []string
 	env := map[string]string{}
-	for _, k := range []string{"TELEGRAM_BOT_TOKEN", "ENGINE_API_URL", "ENGINE_API_TOKEN", "DATABASE_URL", "NOTIFIER_API_TOKEN"} {
+	for _, k := range []string{"TELEGRAM_BOT_TOKEN", "ENGINE_API_URL", "ENGINE_NOTIFIER_TOKEN", "DATABASE_URL", "NOTIFIER_API_TOKEN"} {
 		if env[k] = os.Getenv(k); env[k] == "" {
 			missing = append(missing, k)
 		}
@@ -79,7 +79,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 			return fmt.Errorf("telegram bot: %w", err)
 		}
 		svc := &notifier.Service{Bot: bot, Store: st, Logf: logf,
-			Engine: &engine.Client{BaseURL: env["ENGINE_API_URL"], Token: env["ENGINE_API_TOKEN"], HTTP: &http.Client{}}}
+			Engine: &engine.Client{BaseURL: env["ENGINE_API_URL"], Token: env["ENGINE_NOTIFIER_TOKEN"], HTTP: &http.Client{}}}
 		a := &api.Server{Token: env["NOTIFIER_API_TOKEN"], Bot: me.Username, Store: st, Refresh: svc.Wake, Logf: logf}
 		addr := os.Getenv("NOTIFIER_API_ADDR")
 		if addr == "" {
