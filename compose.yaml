@@ -16,7 +16,7 @@ services:
 
   notifier:
     build: .
-    image: notifier:local
+    image: ${IMAGE:-notifier:local}
     env_file:
       - path: .env
         required: false

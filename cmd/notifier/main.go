@@ -33,6 +33,10 @@ const usage = `notifier — Candylario agents' messages on Telegram, and command
 Needs TELEGRAM_BOT_TOKEN, ENGINE_API_URL, ENGINE_NOTIFIER_TOKEN (the engine's token for the notifier), DATABASE_URL and
 NOTIFIER_API_TOKEN. The API listens on NOTIFIER_API_ADDR, :8080 by default.`
 
+// commit is the source commit this binary was built from, set by the
+// Dockerfile with -ldflags "-X main.commit=...".
+var commit = "dev"
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -80,7 +84,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		}
 		svc := &notifier.Service{Bot: bot, Store: st, Logf: logf,
 			Engine: &engine.Client{BaseURL: env["ENGINE_API_URL"], Token: env["ENGINE_NOTIFIER_TOKEN"], HTTP: &http.Client{}}}
-		a := &api.Server{Token: env["NOTIFIER_API_TOKEN"], Bot: me.Username, Store: st, Refresh: svc.Wake, Logf: logf}
+		a := &api.Server{Token: env["NOTIFIER_API_TOKEN"], Bot: me.Username, Store: st, Refresh: svc.Wake, Commit: commit, Logf: logf}
 		addr := os.Getenv("NOTIFIER_API_ADDR")
 		if addr == "" {
 			addr = ":8080"

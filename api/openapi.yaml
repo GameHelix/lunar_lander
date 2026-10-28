@@ -22,6 +22,7 @@ paths:
                 required: [ok]
                 properties:
                   ok: {type: boolean}
+                  commit: {type: string, description: The source commit the notifier was built from, when known.}
         "503": {$ref: "#/components/responses/Error"}
   /v1/tenants/{tenant}/links:
     parameters:

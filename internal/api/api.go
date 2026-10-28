@@ -29,6 +29,9 @@ type Server struct {
 	Logf    func(format string, args ...any)
 	// TTL is how long a link works; 10 minutes by default.
 	TTL time.Duration
+	// Commit is the source commit the notifier was built from, for the
+	// health check.
+	Commit string
 }
 
 type apiError struct {
@@ -88,7 +91,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusServiceUnavailable, "internal", "database unavailable")
 		return
 	}
-	write(w, http.StatusOK, map[string]bool{"ok": true})
+	write(w, http.StatusOK, map[string]any{"ok": true, "commit": s.Commit})
 }
 
 func (s *Server) link(w http.ResponseWriter, r *http.Request, tenant uuid.UUID) {
