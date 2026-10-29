@@ -135,7 +135,55 @@ func (c *Client) Command(ctx context.Context, tenant, agent, command string) (Re
 // Stream calls fn with each of the agent's events after seq, as the engine
 // stores them, until ctx ends, fn fails or the connection drops.
 func (c *Client) Stream(ctx context.Context, tenant, agent string, after int64, fn func(Event) error) error {
-	resp, err := c.request(ctx, http.MethodGet, agentPath(tenant, agent, "/events/stream?after="+strconv.FormatInt(after, 10)), nil)
+	return c.stream(ctx, agentPath(tenant, agent, "/events/stream?after="+strconv.FormatInt(after, 10)), func(data []byte) error {
+		var e Event
+		if err := json.Unmarshal(data, &e); err != nil {
+			return fmt.Errorf("event stream: %w", err)
+		}
+		return fn(e)
+	})
+}
+
+// RadarAlert is one unusual move the engine's radar raised. Text is the
+// alert as a chat shows it.
+type RadarAlert struct {
+	Seq       int64     `json:"seq"`
+	At        time.Time `json:"at"`
+	Coin      string    `json:"coin"`
+	Change15m float64   `json:"change_15m"`
+	Change1h  float64   `json:"change_1h"`
+	Text      string    `json:"text"`
+}
+
+// RadarStream passes the radar's alerts numbered above after, as they are
+// raised, until the stream drops.
+func (c *Client) RadarStream(ctx context.Context, after int64, fn func(RadarAlert) error) error {
+	return c.stream(ctx, "/v1/radar/stream?after="+strconv.FormatInt(after, 10), func(data []byte) error {
+		var a RadarAlert
+		if err := json.Unmarshal(data, &a); err != nil {
+			return fmt.Errorf("radar stream: %w", err)
+		}
+		return fn(a)
+	})
+}
+
+// RadarSeq is the number of the radar's latest alert, 0 when it has none.
+func (c *Client) RadarSeq(ctx context.Context) (int64, error) {
+	var out struct {
+		Alerts []RadarAlert `json:"alerts"`
+	}
+	if err := c.do(ctx, http.MethodGet, "/v1/radar/alerts?limit=1", nil, &out); err != nil {
+		return 0, err
+	}
+	if len(out.Alerts) == 0 {
+		return 0, nil
+	}
+	return out.Alerts[0].Seq, nil
+}
+
+// stream reads server-sent events from path and gives fn each data field.
+func (c *Client) stream(ctx context.Context, path string, fn func(data []byte) error) error {
+	resp, err := c.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return err
 	}
@@ -147,11 +195,7 @@ func (c *Client) Stream(ctx context.Context, tenant, agent string, after int64, 
 		line := sc.Bytes()
 		switch {
 		case len(line) == 0 && len(data) > 0:
-			var e Event
-			if err := json.Unmarshal(data, &e); err != nil {
-				return fmt.Errorf("event stream: %w", err)
-			}
-			if err := fn(e); err != nil {
+			if err := fn(data); err != nil {
 				return err
 			}
 			data = data[:0]

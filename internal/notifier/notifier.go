@@ -33,6 +33,8 @@ type Service struct {
 	Retry   time.Duration
 	Gap     time.Duration
 	Rate    int
+	// RadarChannel, when set, is a chat that gets every radar alert.
+	RadarChannel int64
 
 	name    string
 	out     chan outgoing
@@ -112,6 +114,9 @@ func (s *Service) Run(ctx context.Context) error {
 	}
 	go s.deliver(ctx)
 	go s.relay(ctx)
+	if s.RadarChannel != 0 {
+		go s.radar(ctx)
+	}
 	s.Logf("notifier running as @%s", s.name)
 	return s.listen(ctx)
 }

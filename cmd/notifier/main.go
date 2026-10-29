@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -84,6 +85,11 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 		}
 		svc := &notifier.Service{Bot: bot, Store: st, Logf: logf,
 			Engine: &engine.Client{BaseURL: env["ENGINE_API_URL"], Token: env["ENGINE_NOTIFIER_TOKEN"], HTTP: &http.Client{}}}
+		if v := os.Getenv("RADAR_CHANNEL_ID"); v != "" {
+			if svc.RadarChannel, err = strconv.ParseInt(v, 10, 64); err != nil {
+				return errors.New("RADAR_CHANNEL_ID must be a chat ID")
+			}
+		}
 		a := &api.Server{Token: env["NOTIFIER_API_TOKEN"], Bot: me.Username, Store: st, Refresh: svc.Wake, Commit: commit, Logf: logf}
 		addr := os.Getenv("NOTIFIER_API_ADDR")
 		if addr == "" {
