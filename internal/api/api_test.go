@@ -96,8 +96,7 @@ func TestLinksAndChats(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer st.Close()
-	refreshed := 0
-	s := &Server{Token: "secret", Bot: "TestBot", Store: st, Refresh: func() { refreshed++ }}
+	s := &Server{Token: "secret", Bot: "TestBot", Store: st}
 	srv := httptest.NewServer(s.Handler())
 	defer srv.Close()
 	c := client{t, srv, "secret"}
@@ -163,10 +162,10 @@ func TestLinksAndChats(t *testing.T) {
 	if status, body := c.call(http.MethodDelete, base+"/chats/x"); status != 400 {
 		t.Fatalf("bad chat: %d %v", status, body)
 	}
-	if status, body := c.call(http.MethodDelete, base+"/chats/42"); status != 200 || body["ok"] != true || refreshed != 1 {
-		t.Fatalf("delete: %d %v refreshed=%d", status, body, refreshed)
+	if status, body := c.call(http.MethodDelete, base+"/chats/42"); status != 200 || body["ok"] != true {
+		t.Fatalf("delete: %d %v", status, body)
 	}
-	if status, body := c.call(http.MethodDelete, base+"/chats/42"); status != 404 || refreshed != 1 {
+	if status, body := c.call(http.MethodDelete, base+"/chats/42"); status != 404 {
 		t.Fatalf("delete again: %d %v", status, body)
 	}
 	if status, body := c.call(http.MethodGet, base+"/chats"); status != 200 || len(body["chats"].([]any)) != 0 {

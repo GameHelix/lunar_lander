@@ -108,8 +108,8 @@ type Link struct {
 	LinkedAt time.Time
 }
 
-// Redeem uses a code to link the chat to the code's tenant. A chat that
-// followed another tenant starts over.
+// Redeem uses a code to link the chat to the code's tenant, in place of
+// any tenant it followed before.
 func (s *Store) Redeem(ctx context.Context, code string, chat int64, name string) (Link, error) {
 	l := Link{Chat: chat, Name: name}
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
@@ -119,9 +119,6 @@ func (s *Store) Redeem(ctx context.Context, code string, chat int64, name string
 			return ErrBadCode
 		}
 		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(ctx, "delete from cursors where chat_id = $1", chat); err != nil {
 			return err
 		}
 		return tx.QueryRow(ctx, `insert into links (chat_id, tenant_id, name) values ($1, $2, $3)
@@ -173,24 +170,6 @@ func (s *Store) Unlink(ctx context.Context, chat int64) error {
 func (s *Store) UnlinkOf(ctx context.Context, tenant uuid.UUID, chat int64) (bool, error) {
 	tag, err := s.pool.Exec(ctx, "delete from links where tenant_id = $1 and chat_id = $2", tenant, chat)
 	return tag.RowsAffected() > 0, err
-}
-
-// Cursor is the last event of the agent the chat has been told about.
-func (s *Store) Cursor(ctx context.Context, chat int64, agent uuid.UUID) (int64, error) {
-	var seq int64
-	err := s.pool.QueryRow(ctx, "select seq from cursors where chat_id = $1 and agent_id = $2", chat, agent).Scan(&seq)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return 0, nil
-	}
-	return seq, err
-}
-
-// SetCursor moves the chat's cursor forward. A chat unlinked meanwhile is
-// left alone.
-func (s *Store) SetCursor(ctx context.Context, chat int64, agent uuid.UUID, seq int64) error {
-	_, err := s.pool.Exec(ctx, `insert into cursors (chat_id, agent_id, seq) select $1, $2, $3 where exists (select from links where chat_id = $1)
-		on conflict (chat_id, agent_id) do update set seq = greatest(cursors.seq, excluded.seq)`, chat, agent, seq)
-	return err
 }
 
 func (s *Store) Offset(ctx context.Context, bot string) (int64, error) {

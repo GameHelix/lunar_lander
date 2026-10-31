@@ -1,5 +1,5 @@
-// Command notifier delivers Candylario agents' messages to Telegram through
-// one bot, and passes the commands people send it to the engine.
+// Command notifier runs the Candylario bot: it posts the engine's radar
+// alerts to Telegram and connects chats to accounts.
 package main
 
 import (
@@ -90,7 +90,7 @@ func run(ctx context.Context, args []string, out io.Writer) error {
 				return errors.New("RADAR_CHANNEL_ID must be a chat ID")
 			}
 		}
-		a := &api.Server{Token: env["NOTIFIER_API_TOKEN"], Bot: me.Username, Store: st, Refresh: svc.Wake, Commit: commit, Logf: logf}
+		a := &api.Server{Token: env["NOTIFIER_API_TOKEN"], Bot: me.Username, Store: st, Commit: commit, Logf: logf}
 		addr := os.Getenv("NOTIFIER_API_ADDR")
 		if addr == "" {
 			addr = ":8080"

@@ -1,10 +1,10 @@
 # notifier
 
-Delivers Candylario agents' messages to Telegram through one bot, [@CandylarioBot](https://t.me/CandylarioBot), and passes the commands people send it to the engine. It talks to the engine only through the [engine API](https://github.com/candylario/trader/blob/main/api/openapi.yaml).
+The Candylario bot, [@CandylarioBot](https://t.me/CandylarioBot). It posts the engine's radar alerts to a Telegram channel and connects private chats to accounts with one-time links from the app. It talks to the engine only through the [engine API](https://github.com/candylario/trader/blob/main/api/openapi.yaml).
 
-- **Messages:** the engine words each message and records it as a `notice` event. The notifier reads each agent's events and delivers its notices to every chat connected to that tenant, starting from the moment the chat connected. Messages go out in order, within Telegram's rate limits, retried until delivered and never sent twice.
-- **Commands:** /status, /decide, /stop and /resume go to the engine API; /sellall asks for /confirm first. Only private chats connected with a one-time link are answered, and a command sent while the notifier was down is ignored, except /stop. With several agents, messages carry the agent's name and commands take it (`/stop btc-eth`).
-- **Data:** its own Postgres database: which chat follows which tenant, the link codes (hashed), and how far each chat has read.
+- **Radar:** with `RADAR_CHANNEL_ID` set, every alert the engine raises goes to that channel as it is raised, in order, within Telegram's rate limits, retried until delivered and never twice. A restart starts from the latest alert.
+- **Chats:** a private chat connects with a one-time link from the app and leaves with /disconnect; group messages are ignored.
+- **Data:** its own Postgres database: which chat follows which tenant, the link codes (hashed), and the next Telegram update to read.
 
 ## Run
 

@@ -24,9 +24,7 @@ type Server struct {
 	// Bot is the bot's username, for the links.
 	Bot   string
 	Store *store.Store
-	// Refresh is called after a chat is disconnected, so its updates stop.
-	Refresh func()
-	Logf    func(format string, args ...any)
+	Logf  func(format string, args ...any)
 	// TTL is how long a link works; 10 minutes by default.
 	TTL time.Duration
 	// Commit is the source commit the notifier was built from, for the
@@ -143,9 +141,6 @@ func (s *Server) unlink(w http.ResponseWriter, r *http.Request, tenant uuid.UUID
 	if !ok {
 		fail(w, http.StatusNotFound, "not_found", "this chat is not connected to the tenant")
 		return
-	}
-	if s.Refresh != nil {
-		s.Refresh()
 	}
 	write(w, http.StatusOK, map[string]bool{"ok": true})
 }
